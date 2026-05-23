@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "245219776057",
+    "project_id": "addalink-ebf27",
+    "storage_bucket": "addalink-ebf27.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245219776057:android:5778206260daf812491fe8",
+        "android_client_info": {
+          "package_name": "com.example.addalink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "245219776057-ot13r5fs8dt6b34qfmu5b9ds4s2b83dl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.addalink",
+            "certificate_hash": "564e156b536fa8ede40a3e5a076a8b45ccddfbc8"
+          }
+        },
+        {
+          "client_id": "245219776057-lrabv44orne34sjbg5psmho5keukb4vj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8HdgNqGvq0iif-80yT83NcT84V7OaqCg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245219776057-lrabv44orne34sjbg5psmho5keukb4vj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "245219776057-j3q6fp4qpgrg79bhukc4fmoui6sq1s36.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.addalink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
