@@ -7,19 +7,20 @@ class NotificationTile
 
   final NotificationModel notification;
 
+  final VoidCallback onTap;
+
   const NotificationTile({
 
     super.key,
 
     required this.notification,
+
+    required this.onTap,
   });
 
-  // FORMAT TIME AGO
   String _timeAgo(String isoString) {
 
-    if (isoString.isEmpty) {
-      return "";
-    }
+    if (isoString.isEmpty) return "";
 
     try {
 
@@ -46,7 +47,6 @@ class NotificationTile
     }
   }
 
-  // ICON FOR TYPE
   IconData _typeIcon() {
     switch (notification.type) {
       case "like":
@@ -58,7 +58,6 @@ class NotificationTile
     }
   }
 
-  // COLOR FOR TYPE
   Color _typeColor() {
     switch (notification.type) {
       case "like":
@@ -73,196 +72,232 @@ class NotificationTile
   @override
   Widget build(BuildContext context) {
 
-    return Container(
+    return GestureDetector(
 
-      margin: const EdgeInsets.only(
-        bottom: 12,
-      ),
+      onTap: notification.postId.isNotEmpty
+          ? onTap
+          : null,
 
-      padding: const EdgeInsets.all(14),
+      child: Container(
 
-      decoration: BoxDecoration(
-
-        color: notification.isRead
-            ? Colors.white
-            : const Color(0xFFF0EDFF),
-
-        borderRadius: BorderRadius.circular(20),
-
-        border: Border.all(
-          color: notification.isRead
-              ? const Color(0xFFE8EAF2)
-              : const Color(0xFFD0C8FF),
+        margin: const EdgeInsets.only(
+          bottom: 12,
         ),
 
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+        padding: const EdgeInsets.all(14),
 
-      child: Row(
+        decoration: BoxDecoration(
 
-        crossAxisAlignment:
-            CrossAxisAlignment.center,
+          color: notification.isRead
+              ? Colors.white
+              : const Color(0xFFF0EDFF),
 
-        children: [
+          borderRadius: BorderRadius.circular(20),
 
-          // AVATAR WITH TYPE BADGE
-          Stack(
-
-            children: [
-
-              CircleAvatar(
-
-                radius: 24,
-
-                backgroundColor:
-                    const Color(0xFF6C4DFF),
-
-                backgroundImage:
-                    notification.senderPhoto.isNotEmpty
-                        ? NetworkImage(
-                            notification.senderPhoto,
-                          )
-                        : null,
-
-                child: notification.senderPhoto.isEmpty
-                    ? const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 22,
-                      )
-                    : null,
-              ),
-
-              Positioned(
-
-                bottom: 0,
-
-                right: 0,
-
-                child: Container(
-
-                  padding: const EdgeInsets.all(3),
-
-                  decoration: BoxDecoration(
-                    color: _typeColor(),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 1.5,
-                    ),
-                  ),
-
-                  child: Icon(
-                    _typeIcon(),
-                    color: Colors.white,
-                    size: 9,
-                  ),
-                ),
-              ),
-            ],
+          border: Border.all(
+            color: notification.isRead
+                ? const Color(0xFFE8EAF2)
+                : const Color(0xFFD0C8FF),
           ),
 
-          const SizedBox(width: 14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
 
-          // TEXT
-          Expanded(
+        child: Row(
 
-            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
 
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+          children: [
+
+            // AVATAR + TYPE BADGE
+            Stack(
 
               children: [
 
-                RichText(
+                CircleAvatar(
 
-                  text: TextSpan(
+                  radius: 24,
+
+                  backgroundColor:
+                      const Color(0xFF6C4DFF),
+
+                  backgroundImage:
+                      notification.senderPhoto.isNotEmpty
+                          ? NetworkImage(
+                              notification.senderPhoto,
+                            )
+                          : null,
+
+                  child: notification.senderPhoto.isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 22,
+                        )
+                      : null,
+                ),
+
+                Positioned(
+
+                  bottom: 0,
+
+                  right: 0,
+
+                  child: Container(
+
+                    padding: const EdgeInsets.all(3),
+
+                    decoration: BoxDecoration(
+                      color: _typeColor(),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+
+                    child: Icon(
+                      _typeIcon(),
+                      color: Colors.white,
+                      size: 9,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(width: 14),
+
+            // TEXT BODY
+            Expanded(
+
+              child: Column(
+
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+
+                  RichText(
+
+                    text: TextSpan(
+
+                      children: [
+
+                        TextSpan(
+
+                          text: notification.senderName
+                                  .isNotEmpty
+                              ? notification.senderName
+                              : "Someone",
+
+                          style: const TextStyle(
+
+                            color: Color(0xFF1B1D28),
+
+                            fontWeight: FontWeight.w700,
+
+                            fontSize: 14,
+                          ),
+                        ),
+
+                        const TextSpan(text: " "),
+
+                        TextSpan(
+
+                          text: notification.text
+                                  .isNotEmpty
+                              ? notification.text
+                              : notification.type ==
+                                      "like"
+                                  ? "liked your post"
+                                  : "commented on your post",
+
+                          style: const TextStyle(
+
+                            color: Color(0xFF70758A),
+
+                            fontWeight: FontWeight.w400,
+
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 5),
+
+                  Row(
 
                     children: [
 
-                      TextSpan(
+                      Text(
 
-                        text: notification.senderName.isNotEmpty
-                            ? notification.senderName
-                            : "Someone",
-
-                        style: const TextStyle(
-
-                          color: Color(0xFF1B1D28),
-
-                          fontWeight: FontWeight.w700,
-
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      const TextSpan(text: " "),
-
-                      TextSpan(
-
-                        text: notification.text.isNotEmpty
-                            ? notification.text
-                            : notification.type == "like"
-                                ? "liked your post"
-                                : "commented on your post",
+                        _timeAgo(notification.createdAt),
 
                         style: const TextStyle(
 
                           color: Color(0xFF70758A),
 
-                          fontWeight: FontWeight.w400,
+                          fontSize: 12,
 
-                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+
+                      // TAP HINT when postId available
+                      if (notification.postId.isNotEmpty) ...[
+
+                        const SizedBox(width: 8),
+
+                        Text(
+
+                          "· Tap to view",
+
+                          style: TextStyle(
+
+                            color: const Color(0xFF6C4DFF)
+                                .withOpacity(0.7),
+
+                            fontSize: 12,
+
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                ),
-
-                const SizedBox(height: 5),
-
-                Text(
-
-                  _timeAgo(notification.createdAt),
-
-                  style: const TextStyle(
-
-                    color: Color(0xFF70758A),
-
-                    fontSize: 12,
-
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          // UNREAD DOT
-          if (!notification.isRead)
-
-            Container(
-
-              width: 9,
-
-              height: 9,
-
-              decoration: const BoxDecoration(
-
-                color: Color(0xFF6C4DFF),
-
-                shape: BoxShape.circle,
+                ],
               ),
             ),
-        ],
+
+            const SizedBox(width: 10),
+
+            // UNREAD DOT
+            if (!notification.isRead)
+
+              Container(
+
+                width: 9,
+
+                height: 9,
+
+                decoration: const BoxDecoration(
+
+                  color: Color(0xFF6C4DFF),
+
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

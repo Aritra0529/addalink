@@ -106,4 +106,23 @@ class FeedService {
 
     return jsonDecode(response.body);
   }
+
+  // GET SINGLE POST BY ID
+  Future<Map<String, dynamic>> getPostById({
+    required String token,
+
+    required String postId,
+  }) async {
+
+    final response = await http.get(
+
+      Uri.parse("$baseUrl/$postId"),
+
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    return jsonDecode(response.body);
+  }
 }

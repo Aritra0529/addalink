@@ -48,9 +48,7 @@ const googleLogin = async (
                     decodedToken.email ||
                     "",
 
-                photo:
-                    decodedToken.picture ||
-                    "",
+                photo: "",
             });
         }
 

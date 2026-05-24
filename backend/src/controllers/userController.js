@@ -270,10 +270,38 @@ const updateProfile = async (req, res) => {
     }
 };
 
+// ─── SAVE FCM TOKEN ─────────────────────────────────────────────────────────────
+const saveFcmToken = async (req, res) => {
+    try {
+        const { fcmToken } = req.body;
+
+        if (!fcmToken) {
+            return res.status(400).json({
+                success: false,
+                message: "fcmToken required",
+            });
+        }
+
+        req.user.fcmToken = fcmToken;
+        await req.user.save();
+
+        return res.status(200).json({
+            success: true,
+        });
+    } catch (error) {
+        console.log("Save FCM Token Error:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
 // ─── EXPORTS ────────────────────────────────────────────────────────────────────
 module.exports = {
     completeProfile,
     getCurrentUser,
     getProfile,
     updateProfile,
+    saveFcmToken,
 };

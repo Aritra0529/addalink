@@ -1,17 +1,21 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter/services.dart';
 
 import 'profile_controller.dart';
 import '../feed/home_feed_screen.dart';
 
-class CompleteProfileScreen extends StatefulWidget {
+const Color _bg = Color(0xFF0F0F1A);
+const Color _card = Color(0xFF1A1A2E);
+const Color _primary = Color(0xFF6C4DFF);
+const Color _secondary = Color(0xFF8E7CFF);
+const Color _white = Colors.white;
 
+class CompleteProfileScreen
+    extends StatefulWidget {
 
-const CompleteProfileScreen({
-  super.key,
-});
+  const CompleteProfileScreen({
+    super.key,
+  });
 
   @override
   State<CompleteProfileScreen> createState() =>
@@ -21,844 +25,486 @@ const CompleteProfileScreen({
 class _CompleteProfileScreenState
     extends State<CompleteProfileScreen> {
 
-  final TextEditingController usernameController =
-      TextEditingController();
-
-  final TextEditingController phoneController =
-      TextEditingController();
-
-  final TextEditingController bioController =
-      TextEditingController();
-
-  final User? user =
-      FirebaseAuth.instance.currentUser;
-
-  final ProfileController controller =
+  final ProfileController _controller =
       ProfileController();
 
-  bool isLoading = false;
+  final TextEditingController _usernameCtrl =
+      TextEditingController();
 
-  String currentAddress = "";
+  final TextEditingController _phoneCtrl =
+      TextEditingController();
 
-  double latitude = 0;
+  final TextEditingController _bioCtrl =
+      TextEditingController();
 
-  double longitude = 0;
-
-  final List<String> interests = [
-
-    "Tech",
-    "Gaming",
-    "Travel",
+  final List<String> _allInterests = [
     "Food",
-    "Photography",
+    "Events",
+    "Sports",
     "Music",
-    "Movies",
-    "Fitness",
-    "Coding",
+    "Tech",
     "Art",
-    "Cricket",
-    "Startups",
+    "Travel",
+    "Fitness",
+    "Education",
+    "Shopping",
+    "Nature",
+    "Pets",
+    "Books",
+    "Movies",
+    "Gaming",
   ];
 
-  final List<String> selectedInterests =
-      [];
+  final List<String> _selectedInterests = [];
 
-  // LOCATION FUNCTION
-  Future<void> getLocation() async {
+  bool _isSaving = false;
 
-    bool serviceEnabled;
+  int _currentStep = 0;
 
-    LocationPermission permission;
+  @override
+  void dispose() {
+    _usernameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _bioCtrl.dispose();
+    super.dispose();
+  }
 
-    serviceEnabled =
-        await Geolocator
-            .isLocationServiceEnabled();
+  Future<void> _submit() async {
 
-    if (!serviceEnabled) {
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-
-        const SnackBar(
-          content: Text(
-            "Please enable location services",
-          ),
-        ),
-      );
-
+    if (_usernameCtrl.text.trim().isEmpty) {
+      _showSnack("Please enter a username");
       return;
     }
 
-    permission =
-        await Geolocator
-            .checkPermission();
-
-    if (permission ==
-        LocationPermission.denied) {
-
-      permission =
-          await Geolocator
-              .requestPermission();
-    }
-
-    if (permission ==
-        LocationPermission.deniedForever) {
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-
-        const SnackBar(
-          content: Text(
-            "Location permission permanently denied",
-          ),
-        ),
-      );
-
+    if (_selectedInterests.isEmpty) {
+      _showSnack("Please select at least one interest");
       return;
     }
 
-    Position position =
-        await Geolocator
-            .getCurrentPosition(
-      desiredAccuracy:
-          LocationAccuracy.high,
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+
+      final response =
+          await _controller.completeProfile(
+        username: _usernameCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+        bio: _bioCtrl.text.trim(),
+        interests: _selectedInterests,
+        location: {"address": ""},
+      );
+
+      if (response["success"] == true) {
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  const HomeFeedScreen(),
+            ),
+          );
+        }
+
+      } else {
+
+        _showSnack(
+          response["message"] ?? "Failed to save profile",
+        );
+      }
+
+    } catch (e) {
+
+      _showSnack("Something went wrong");
+
+    } finally {
+
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: _primary,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
-
-    latitude = position.latitude;
-
-    longitude = position.longitude;
-
-    List<Placemark> placemarks =
-        await placemarkFromCoordinates(
-      latitude,
-      longitude,
-    );
-
-    Placemark place = placemarks[0];
-
-    currentAddress =
-        "${place.locality}, ${place.country}";
-
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
-      backgroundColor:
-          const Color(0xFF0F0F1A),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
 
-      body: SafeArea(
-        child: SingleChildScrollView(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
 
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 20,
-          ),
+      child: Scaffold(
 
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+        backgroundColor: _bg,
 
-            children: [
+        body: Stack(
 
-              const SizedBox(height: 10),
+          children: [
 
-              // TITLE
-              const Text(
-                "Complete Your Profile 👋",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight:
-                      FontWeight.bold,
+            // TOP GLOW
+            Positioned(
+              top: -100,
+              left: -60,
+              child: Container(
+                height: 240,
+                width: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _primary.withOpacity(0.2),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 12),
+            SafeArea(
 
-              // SUBTITLE
-              const Text(
-                "Help AddaLink personalize your nearby community experience.",
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 16,
-                  height: 1.5,
+              child: SingleChildScrollView(
+
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
                 ),
-              ),
 
-              const SizedBox(height: 35),
+                child: Column(
 
-              // PROFILE IMAGE
-              Center(
-                child: CircleAvatar(
-                  radius: 55,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
 
-                  backgroundColor:
-                      const Color(
-                    0xFF6C4DFF,
-                  ),
+                  children: [
 
-                  backgroundImage:
-                      user?.photoURL !=
-                              null
-                          ? NetworkImage(
-                              user!
-                                  .photoURL!,
-                            )
-                          : null,
-                ),
-              ),
+                    const SizedBox(height: 20),
 
-              const SizedBox(height: 18),
+                    // HEADER
+                    const Text(
 
-              // USER NAME
-              Center(
-                child: Text(
-                  user?.displayName ??
-                      "AddaLink User",
+                      "Set Up Your Profile",
 
-                  style:
-                      const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight:
-                        FontWeight.w600,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // EMAIL
-              Center(
-                child: Text(
-                  user?.email ?? "",
-
-                  style:
-                      const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // USERNAME
-              buildTextField(
-                controller:
-                    usernameController,
-
-                hint:
-                    "Choose a username",
-
-                icon:
-                    Icons.person_outline,
-              ),
-
-              const SizedBox(height: 20),
-
-              // PHONE
-              buildTextField(
-                controller:
-                    phoneController,
-
-                hint:
-                    "Phone number",
-
-                icon:
-                    Icons.phone_outlined,
-
-                keyboardType:
-                    TextInputType.phone,
-              ),
-
-              const SizedBox(height: 20),
-
-              // BIO
-              buildTextField(
-                controller:
-                    bioController,
-
-                hint:
-                    "Tell people about yourself...",
-
-                icon:
-                    Icons.edit_note_outlined,
-
-                maxLines: 4,
-              ),
-
-              const SizedBox(height: 35),
-
-              // INTEREST TITLE
-              const Text(
-                "Your Interests ✨",
-
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                "Select interests to personalize your feed and nearby recommendations.",
-
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-
-              const SizedBox(height: 22),
-
-              // INTEREST CHIPS
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-
-                children:
-                    interests.map((
-                  interest,
-                ) {
-
-                  final bool isSelected =
-                      selectedInterests
-                          .contains(
-                    interest,
-                  );
-
-                  return GestureDetector(
-
-                    onTap: () {
-
-                      setState(() {
-
-                        if (isSelected) {
-
-                          selectedInterests
-                              .remove(
-                            interest,
-                          );
-
-                        } else {
-
-                          selectedInterests
-                              .add(
-                            interest,
-                          );
-                        }
-                      });
-                    },
-
-                    child:
-                        AnimatedContainer(
-
-                      duration:
-                          const Duration(
-                        milliseconds:
-                            250,
-                      ),
-
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
-                        horizontal: 18,
-                        vertical: 14,
-                      ),
-
-                      decoration:
-                          BoxDecoration(
-
-                        gradient:
-                            isSelected
-                                ? const LinearGradient(
-                                    colors: [
-
-                                      Color(
-                                        0xFF6C4DFF,
-                                      ),
-
-                                      Color(
-                                        0xFF8E7CFF,
-                                      ),
-                                    ],
-                                  )
-                                : null,
-
-                        color:
-                            isSelected
-                                ? null
-                                : Colors
-                                    .white
-                                    .withOpacity(
-                                    0.05,
-                                  ),
-
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          18,
-                        ),
-
-                        border:
-                            Border.all(
-                          color:
-                              isSelected
-                                  ? Colors
-                                      .transparent
-                                  : Colors
-                                      .white
-                                      .withOpacity(
-                                      0.08,
-                                    ),
-                        ),
-                      ),
-
-                      child: Text(
-                        interest,
-
-                        style:
-                            TextStyle(
-                          color:
-                              isSelected
-                                  ? Colors
-                                      .white
-                                  : Colors
-                                      .white70,
-
-                          fontSize: 14,
-
-                          fontWeight:
-                              FontWeight
-                                  .w600,
-                        ),
+                      style: TextStyle(
+                        color: _white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  );
 
-                }).toList(),
-              ),
+                    const SizedBox(height: 10),
 
-              const SizedBox(height: 35),
+                    const Text(
 
-              // LOCATION CARD
-              GestureDetector(
+                      "Tell your locality about yourself. This takes just a minute.",
 
-                onTap: () async {
-
-                  await getLocation();
-                },
-
-                child: Container(
-
-                  padding:
-                      const EdgeInsets
-                          .all(18),
-
-                  decoration:
-                      BoxDecoration(
-
-                    color: Colors.white
-                        .withOpacity(
-                      0.05,
-                    ),
-
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      22,
-                    ),
-
-                    border:
-                        Border.all(
-                      color: Colors
-                          .white
-                          .withOpacity(
-                        0.08,
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 15,
+                        height: 1.6,
                       ),
                     ),
-                  ),
 
-                  child: Row(
-                    children: [
+                    const SizedBox(height: 36),
 
-                      Container(
-                        padding:
-                            const EdgeInsets
-                                .all(12),
+                    // USERNAME
+                    _sectionLabel("Username *"),
 
-                        decoration:
-                            BoxDecoration(
+                    const SizedBox(height: 10),
 
-                          color:
-                              const Color(
-                            0xFF6C4DFF,
-                          ).withOpacity(
-                            0.18,
+                    _inputField(
+                      controller: _usernameCtrl,
+                      hint: "@yourname",
+                      icon: Icons.alternate_email,
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    // PHONE
+                    _sectionLabel("Phone Number"),
+
+                    const SizedBox(height: 10),
+
+                    _inputField(
+                      controller: _phoneCtrl,
+                      hint: "+91 98765 43210",
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    // BIO
+                    _sectionLabel("Bio"),
+
+                    const SizedBox(height: 10),
+
+                    _inputField(
+                      controller: _bioCtrl,
+                      hint: "Tell your neighbours something about you...",
+                      icon: Icons.edit_outlined,
+                      maxLines: 3,
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // INTERESTS
+                    _sectionLabel("Interests *"),
+
+                    const SizedBox(height: 6),
+
+                    const Text(
+                      "Pick what matters to you in your locality",
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _allInterests.map((interest) {
+
+                        final selected =
+                            _selectedInterests.contains(interest);
+
+                        return GestureDetector(
+
+                          onTap: () {
+                            setState(() {
+                              selected
+                                  ? _selectedInterests
+                                      .remove(interest)
+                                  : _selectedInterests
+                                      .add(interest);
+                            });
+                          },
+
+                          child: AnimatedContainer(
+
+                            duration:
+                                const Duration(milliseconds: 200),
+
+                            padding:
+                                const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
+
+                            decoration: BoxDecoration(
+
+                              gradient: selected
+                                  ? const LinearGradient(
+                                      colors: [_primary, _secondary],
+                                    )
+                                  : null,
+
+                              color: selected
+                                  ? null
+                                  : Colors.white
+                                      .withOpacity(0.07),
+
+                              borderRadius:
+                                  BorderRadius.circular(20),
+
+                              border: Border.all(
+                                color: selected
+                                    ? Colors.transparent
+                                    : Colors.white
+                                        .withOpacity(0.15),
+                              ),
+                            ),
+
+                            child: Text(
+
+                              interest,
+
+                              style: TextStyle(
+                                color: selected
+                                    ? _white
+                                    : Colors.white60,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // SUBMIT BUTTON
+                    GestureDetector(
+
+                      onTap: _isSaving ? null : _submit,
+
+                      child: Container(
+
+                        height: 60,
+
+                        width: double.infinity,
+
+                        decoration: BoxDecoration(
+
+                          gradient: _isSaving
+                              ? null
+                              : const LinearGradient(
+                                  colors: [_primary, _secondary],
+                                ),
+
+                          color: _isSaving
+                              ? Colors.white12
+                              : null,
 
                           borderRadius:
-                              BorderRadius
-                                  .circular(
-                            14,
-                          ),
+                              BorderRadius.circular(20),
                         ),
 
-                        child:
-                            const Icon(
-                          Icons
-                              .location_on_outlined,
+                        child: Center(
 
-                          color: Color(
-                            0xFF8E7CFF,
-                          ),
-                        ),
-                      ),
+                          child: _isSaving
 
-                      const SizedBox(
-                        width: 16,
-                      ),
+                              ? const SizedBox(
 
-                      Expanded(
-                        child: Column(
+                                  height: 22,
+                                  width: 22,
 
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                                  child: CircularProgressIndicator(
+                                    color: _white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
 
-                          children: [
+                              : const Text(
 
-                            const Text(
-                              "Your Location",
+                                  "Continue to AddaLink →",
 
-                              style:
-                                  TextStyle(
-                                color: Colors
-                                    .white,
-
-                                fontSize: 16,
-
-                                fontWeight:
-                                    FontWeight
-                                        .w600,
-                              ),
-                            ),
-
-                            const SizedBox(
-                              height: 4,
-                            ),
-
-                            Text(
-
-                              currentAddress
-                                      .isEmpty
-                                  ? "Tap to fetch your location"
-                                  : currentAddress,
-
-                              style:
-                                  const TextStyle(
-                                color: Colors
-                                    .white54,
-
-                                fontSize: 13,
-
-                                height: 1.5,
-                              ),
-                            ),
-
-                          ],
+                                  style: TextStyle(
+                                    color: _white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                         ),
                       ),
-
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 45),
-
-              // CONTINUE BUTTON
-              GestureDetector(
-
-                onTap: () async {
-
-                  if (usernameController
-                      .text
-                      .trim()
-                      .isEmpty) {
-
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(
-
-                      const SnackBar(
-                        content: Text(
-                          "Username is required",
-                        ),
-                      ),
-                    );
-
-                    return;
-                  }
-
-                  setState(() {
-                    isLoading = true;
-                  });
-
-                  try {
-
-                    await getLocation();
-
-                final response =
-    await controller
-        .completeProfile(
-
-  username:
-      usernameController
-          .text
-          .trim(),
-
-  phone:
-      phoneController
-          .text
-          .trim(),
-
-  bio:
-      bioController
-          .text
-          .trim(),
-
-  interests:
-      selectedInterests,
-
-  location: {
-
-    "address":
-        currentAddress,
-
-    "latitude":
-        latitude,
-
-    "longitude":
-        longitude,
-
-    "googleMapsLink":
-        "https://maps.google.com/?q=$latitude,$longitude",
-  },
-);
-
-                    print(response);
-
-                    if (response[
-                            "success"] ==
-                        true) {
-
-                      ScaffoldMessenger
-                          .of(context)
-                          .showSnackBar(
-
-                        const SnackBar(
-                          content: Text(
-                            "Profile Completed 🚀",
-                          ),
-                        ),
-                      );
-
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const HomeFeedScreen(),
-                        ),
-                      );
-                    }
-
-                  } catch (e) {
-
-                    print(e);
-
-                    ScaffoldMessenger
-                        .of(context)
-                        .showSnackBar(
-
-                      SnackBar(
-                        content: Text(
-                          e.toString(),
-                        ),
-                      ),
-                    );
-                  }
-
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-
-                child: Container(
-
-                  height: 62,
-
-                  width: double.infinity,
-
-                  decoration:
-                      BoxDecoration(
-
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      18,
                     ),
 
-                    gradient:
-                        const LinearGradient(
-                      colors: [
-
-                        Color(
-                          0xFF6C4DFF,
-                        ),
-
-                        Color(
-                          0xFF8E7CFF,
-                        ),
-                      ],
-                    ),
-
-                    boxShadow: [
-
-                      BoxShadow(
-                        color:
-                            const Color(
-                          0xFF6C4DFF,
-                        ).withOpacity(
-                          0.35,
-                        ),
-
-                        blurRadius: 25,
-
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-
-                  child: Center(
-
-                    child: isLoading
-
-                        ? const CircularProgressIndicator(
-                            color:
-                                Colors
-                                    .white,
-                          )
-
-                        : const Text(
-                            "Continue",
-
-                            style:
-                                TextStyle(
-                              color:
-                                  Colors
-                                      .white,
-
-                              fontSize:
-                                  18,
-
-                              fontWeight:
-                                  FontWeight
-                                      .w600,
-                            ),
-                          ),
-                  ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 30),
-
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget buildTextField({
+  Widget _sectionLabel(String label) {
 
-    required TextEditingController
-        controller,
+    return Text(
 
+      label,
+
+      style: const TextStyle(
+        color: Colors.white70,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.3,
+      ),
+    );
+  }
+
+  Widget _inputField({
+    required TextEditingController controller,
     required String hint,
-
     required IconData icon,
-
-    TextInputType keyboardType =
-        TextInputType.text,
-
+    TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
   }) {
 
     return Container(
 
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ),
+
       decoration: BoxDecoration(
 
-        color: Colors.white
-            .withOpacity(0.05),
+        color: Colors.white.withOpacity(0.07),
 
-        borderRadius:
-            BorderRadius.circular(
-          20,
-        ),
+        borderRadius: BorderRadius.circular(18),
 
         border: Border.all(
-          color: Colors.white
-              .withOpacity(0.08),
+          color: Colors.white.withOpacity(0.1),
         ),
       ),
 
-      child: TextField(
+      child: Row(
 
-        controller: controller,
+        crossAxisAlignment: maxLines > 1
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
 
-        keyboardType: keyboardType,
+        children: [
 
-        maxLines: maxLines,
-
-        style: const TextStyle(
-          color: Colors.white,
-        ),
-
-        decoration: InputDecoration(
-
-          hintText: hint,
-
-          hintStyle:
-              const TextStyle(
-            color: Colors.white38,
+          Padding(
+            padding: EdgeInsets.only(
+              top: maxLines > 1 ? 14 : 0,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white38,
+              size: 20,
+            ),
           ),
 
-          prefixIcon: Icon(
-            icon,
-            color: Colors.white54,
-          ),
+          const SizedBox(width: 12),
 
-          border: InputBorder.none,
+          Expanded(
 
-          contentPadding:
-              const EdgeInsets
-                  .symmetric(
-            horizontal: 20,
-            vertical: 18,
+            child: TextField(
+
+              controller: controller,
+
+              keyboardType: keyboardType,
+
+              maxLines: maxLines,
+
+              style: const TextStyle(
+                color: _white,
+                fontSize: 15,
+              ),
+
+              decoration: InputDecoration(
+
+                hintText: hint,
+
+                hintStyle: const TextStyle(
+                  color: Colors.white30,
+                  fontSize: 15,
+                ),
+
+                border: InputBorder.none,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

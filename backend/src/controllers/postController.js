@@ -5,6 +5,14 @@ require(
     "../models/Notification"
 );
 
+const {
+
+    sendPushNotification,
+
+} = require(
+    "../utils/fcmHelper"
+);
+
 const cloudinary =
 require(
     "../config/cloudinary"
@@ -170,7 +178,12 @@ async (req, res) => {
                     user.username,
 
                 userProfileImage:
-                    user.photo || "",
+
+                    user.photo ||
+
+                    user.profileImage ||
+
+                    "",
 
                 content:
                     content || "",
@@ -288,7 +301,12 @@ async (req, res) => {
                         req.user.username,
 
                     senderPhoto:
-                        req.user.photo || "",
+
+                        req.user.photo ||
+
+                        req.user.profileImage ||
+
+                        "",
 
                     type:
                         "like",
@@ -299,6 +317,23 @@ async (req, res) => {
                     text:
                         "liked your post",
                 });
+
+                // SEND FCM PUSH
+                sendPushNotification(
+                    post.user,
+                    {
+                        title:
+                            req.user.username ||
+                            "Someone",
+                        body:
+                            "liked your post",
+                        data: {
+                            type: "like",
+                            postId:
+                                post._id.toString(),
+                        },
+                    }
+                );
             }
         }
 
@@ -367,7 +402,12 @@ async (req, res) => {
                 req.user.username,
 
             userProfileImage:
-                req.user.photo || "",
+
+                req.user.photo ||
+
+                req.user.profileImage ||
+
+                "",
 
             text,
         });
@@ -394,7 +434,12 @@ async (req, res) => {
                     req.user.username,
 
                 senderPhoto:
-                    req.user.photo || "",
+
+                    req.user.photo ||
+
+                    req.user.profileImage ||
+
+                    "",
 
                 type:
                     "comment",
@@ -405,6 +450,23 @@ async (req, res) => {
                 text:
                     "commented on your post",
             });
+
+            // SEND FCM PUSH
+            sendPushNotification(
+                post.user,
+                {
+                    title:
+                        req.user.username ||
+                        "Someone",
+                    body:
+                        "commented on your post",
+                    data: {
+                        type: "comment",
+                        postId:
+                            post._id.toString(),
+                    },
+                }
+            );
         }
 
         return res.status(200).json({
@@ -516,6 +578,92 @@ async (req, res) => {
     }
 };
 
+// GET SINGLE POST BY ID
+const getPostById =
+async (req, res) => {
+
+    try {
+
+        const { postId } =
+            req.params;
+
+        const post =
+            await Post.findById(
+                postId,
+            );
+
+        if (!post || post.isDeleted) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Post not found",
+            });
+        }
+
+        const formatted = {
+
+            _id:
+                post._id,
+
+            username:
+                post.username,
+
+            userProfileImage:
+                post.userProfileImage,
+
+            content:
+                post.content,
+
+            images:
+                post.images || [],
+
+            video:
+                post.video || "",
+
+            postType:
+                post.postType,
+
+            createdAt:
+                post.createdAt,
+
+            likesCount:
+                post.likes.length,
+
+            isLiked:
+                post.likes.some(
+                    (id) =>
+                        id.toString() ===
+                        req.user._id.toString()
+                ),
+
+            comments:
+                post.comments || [],
+        };
+
+        return res.status(200).json({
+
+            success: true,
+
+            post: formatted,
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Failed to fetch post",
+        });
+    }
+};
+
 module.exports = {
 
     createPost,
@@ -525,4 +673,6 @@ module.exports = {
     addComment,
 
     getFeedPosts,
+
+    getPostById,
 };

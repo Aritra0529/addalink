@@ -14,6 +14,9 @@ class NotificationModel {
 
   final String createdAt;
 
+  // POST REFERENCE — used to navigate to the post on tap
+  final String postId;
+
   NotificationModel({
 
     required this.id,
@@ -29,11 +32,28 @@ class NotificationModel {
     required this.isRead,
 
     required this.createdAt,
+
+    required this.postId,
   });
 
   factory NotificationModel.fromJson(
     Map<String, dynamic> json,
   ) {
+
+    // post field arrives as populated object { _id: "..." } or raw string id
+    String resolvedPostId = "";
+
+    final rawPost = json["post"];
+
+    if (rawPost is Map) {
+
+      resolvedPostId =
+          rawPost["_id"]?.toString() ?? "";
+
+    } else if (rawPost is String) {
+
+      resolvedPostId = rawPost;
+    }
 
     return NotificationModel(
 
@@ -57,6 +77,8 @@ class NotificationModel {
 
       createdAt:
           json["createdAt"] ?? "",
+
+      postId: resolvedPostId,
     );
   }
 }

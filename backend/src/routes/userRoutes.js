@@ -1,110 +1,92 @@
-const express = require("express");
+const express =
+    require("express");
 
-const router = express.Router();
-
-const multer = require("multer");
+const router =
+    express.Router();
 
 const {
+
     completeProfile,
+
     getCurrentUser,
+
     getProfile,
+
     updateProfile,
-} = require("../controllers/userController");
 
-const { protect } = require("../middleware/authMiddleware");
+    saveFcmToken,
 
-// ─── MULTER CONFIG (memory storage for cloudinary) ──────────────────────────────
-const storage = multer.memoryStorage();
+} = require(
 
-const path =
-    require("path");
-
-const fileFilter = (
-    req,
-    file,
-    cb,
-) => {
-
-    console.log(
-        "PROFILE IMAGE:",
-        file.originalname
-    );
-
-    console.log(
-        "PROFILE MIME:",
-        file.mimetype
-    );
-
-    const allowedExtensions = [
-
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".webp",
-        ".gif",
-    ];
-
-    const ext =
-        path.extname(
-            file.originalname
-        ).toLowerCase();
-
-    if (
-        allowedExtensions.includes(
-            ext
-        )
-    ) {
-
-        cb(null, true);
-
-    } else {
-
-        cb(
-            new Error(
-                "Only image files are allowed"
-            ),
-            false
-        );
-    }
-};
-
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5 MB limit
-    },
-});
-
-// ─── ROUTES ─────────────────────────────────────────────────────────────────────
-
-// COMPLETE PROFILE (existing — preserved)
-router.post(
-    "/complete-profile",
-    protect,
-    completeProfile
+    "../controllers/userController"
 );
 
-// GET CURRENT USER (existing — preserved)
-router.get(
-    "/me",
+const {
+
     protect,
+
+} = require(
+
+    "../middleware/authMiddleware"
+);
+
+const upload =
+    require(
+
+        "../middleware/uploadMiddleware"
+    );
+
+// GET CURRENT USER
+router.get(
+
+    "/me",
+
+    protect,
+
     getCurrentUser
 );
 
-// GET PROFILE WITH POSTS & STATS
+// GET PROFILE (with posts + stats)
 router.get(
+
     "/profile",
+
     protect,
+
     getProfile
 );
 
-// UPDATE PROFILE (with optional image upload)
-router.put(
-    "/update-profile",
+// COMPLETE PROFILE (onboarding)
+router.post(
+
+    "/complete-profile",
+
     protect,
-    upload.single("profileImage"),
+
+    completeProfile
+);
+
+// UPDATE PROFILE (with optional photo)
+router.put(
+
+    "/update-profile",
+
+    protect,
+
+    upload.single("photo"),
+
     updateProfile
 );
 
-module.exports = router;
+// SAVE FCM TOKEN
+router.post(
+
+    "/fcm-token",
+
+    protect,
+
+    saveFcmToken
+);
+
+module.exports =
+    router;

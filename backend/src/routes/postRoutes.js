@@ -1,25 +1,40 @@
-const express = require("express");
+const express =
+    require("express");
 
-const router = express.Router();
+const router =
+    express.Router();
 
 const {
 
     createPost,
-    getFeedPosts,
+
     toggleLikePost,
+
     addComment,
-} = require("../controllers/postController");
+
+    getFeedPosts,
+
+    getPostById,
+
+} = require(
+
+    "../controllers/postController"
+);
 
 const {
+
     protect,
+
 } = require(
+
     "../middleware/authMiddleware"
 );
 
 const upload =
-require(
-    "../middleware/uploadMiddleware"
-);
+    require(
+
+        "../middleware/uploadMiddleware"
+    );
 
 // CREATE POST
 router.post(
@@ -44,18 +59,6 @@ router.post(
     createPost
 );
 
-router.put(
-  "/like/:postId",
-  protect,
-  toggleLikePost,
-);
-
-router.post(
-  "/comment/:postId",
-  protect,
-  addComment,
-);
-
 // GET FEED
 router.get(
 
@@ -66,4 +69,35 @@ router.get(
     getFeedPosts
 );
 
-module.exports = router;
+// GET SINGLE POST BY ID
+router.get(
+
+    "/:postId",
+
+    protect,
+
+    getPostById
+);
+
+// TOGGLE LIKE
+router.put(
+
+    "/like/:postId",
+
+    protect,
+
+    toggleLikePost
+);
+
+// ADD COMMENT
+router.post(
+
+    "/comment/:postId",
+
+    protect,
+
+    addComment
+);
+
+module.exports =
+    router;

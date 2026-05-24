@@ -101,4 +101,30 @@ Future<Map<String, dynamic>>
     text: text,
   );
 }
+
+// GET SINGLE POST BY ID
+Future<PostModel?> getPostById({
+
+  required String token,
+
+  required String postId,
+}) async {
+
+  final response =
+      await _service.getPostById(
+
+    token: token,
+
+    postId: postId,
+  );
+
+  if (response["success"] == true) {
+
+    return PostModel.fromJson(
+      response["post"],
+    );
+  }
+
+  return null;
+}
 }

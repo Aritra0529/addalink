@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'notification_controller.dart';
 import 'notification_model.dart';
 import 'notification_tile.dart';
+import '../feed/post_detail_screen.dart';
 
 class NotificationScreen
     extends StatefulWidget {
@@ -155,9 +156,35 @@ class _NotificationScreenState
 
                       itemBuilder: (context, index) {
 
+                        final n =
+                            notifications[index];
+
                         return NotificationTile(
-                          notification:
-                              notifications[index],
+
+                          notification: n,
+
+                          onTap: () {
+
+                            Navigator.push(
+
+                              context,
+
+                              MaterialPageRoute(
+
+                                builder: (_) =>
+                                    PostDetailScreen(
+
+                                  postId:
+                                      n.postId,
+
+                                  // auto-open comments sheet for comment notifications
+                                  openComments:
+                                      n.type ==
+                                      "comment",
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

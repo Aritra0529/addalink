@@ -16,41 +16,46 @@ class AuthService {
 
   // GOOGLE SIGN IN
   Future<UserCredential?> signInWithGoogle() async {
-    try {
-      // CLEAR PREVIOUS SESSION
-      await _googleSignIn.signOut();
 
-      // OPEN GOOGLE ACCOUNT PICKER
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+  try {
 
-      // USER CANCELLED LOGIN
-      if (googleUser == null) {
-        return null;
-      }
+    // FORCE ACCOUNT CHOOSER
+    await _googleSignIn.disconnect();
 
-      // GET AUTH DETAILS
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+    // OPEN GOOGLE ACCOUNT PICKER
+    final GoogleSignInAccount? googleUser =
+        await _googleSignIn.signIn();
 
-      // CREATE FIREBASE CREDENTIAL
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // FIREBASE LOGIN
-      UserCredential userCredential = await _firebaseAuth.signInWithCredential(
-        credential,
-      );
-
-      return userCredential;
-    } catch (e) {
-      print("Google Sign In Error: $e");
-
+    // USER CANCELLED LOGIN
+    if (googleUser == null) {
       return null;
     }
-  }
 
+    // GET AUTH DETAILS
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    // CREATE FIREBASE CREDENTIAL
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // FIREBASE LOGIN
+    UserCredential userCredential =
+        await _firebaseAuth.signInWithCredential(
+      credential,
+    );
+
+    return userCredential;
+
+  } catch (e) {
+
+    print("Google Sign In Error: $e");
+
+    return null;
+  }
+}
   // BACKEND LOGIN — creates user in MongoDB and returns JWT
   Future<Map<String, dynamic>?>
     loginWithBackend(

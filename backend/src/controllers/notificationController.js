@@ -16,6 +16,8 @@ async (req, res) => {
                     req.user._id,
             })
 
+            .populate("post", "_id")
+
             .sort({
                 createdAt: -1,
             });
