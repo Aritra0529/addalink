@@ -8,6 +8,12 @@ class FeedController {
   final FeedService _service =
       FeedService();
 
+  // PAGINATION STATE
+  int currentPage = 1;
+  bool hasMore = true;
+  bool isLoadingMore = false;
+  List<PostModel> cachedPosts = [];
+
   Future<Map<String, dynamic>>
       createPost({
 
@@ -37,33 +43,100 @@ class FeedController {
       location: location,
     );
   }
+
   Future<List<PostModel>>
     getFeedPosts({
 
   required String token,
+  bool refresh = false,
 }) async {
 
-  final response =
-      await _service.getFeed(
-    token: token,
-  );
+  // PREVENT DUPLICATE CALLS
+  if (isLoadingMore) return cachedPosts;
 
-  if (response["success"] ==
-      true) {
-
-    final List posts =
-        response["posts"];
-
-    return posts
-        .map(
-          (e) =>
-              PostModel.fromJson(e),
-        )
-        .toList();
+  // RESET ON REFRESH
+  if (refresh) {
+    currentPage = 1;
+    hasMore = true;
+    cachedPosts = [];
   }
 
-  return [];
+  // NOTHING MORE TO LOAD
+  if (!hasMore) return cachedPosts;
+
+  isLoadingMore = true;
+
+  try {
+    final response =
+        await _service.getFeed(
+      token: token,
+      page: currentPage,
+    );
+
+    if (response["success"] == true) {
+
+      final List posts =
+          response["posts"];
+
+      final newPosts = posts
+          .map(
+            (e) =>
+                PostModel.fromJson(e),
+          )
+          .toList();
+
+      cachedPosts.addAll(newPosts);
+
+      hasMore =
+          response["hasMore"] == true;
+
+      currentPage += 1;
+    }
+  } finally {
+    isLoadingMore = false;
+  }
+
+  return cachedPosts;
 }
+
+Future<Map<String, dynamic>>
+    editPost({
+
+  required String token,
+
+  required String postId,
+
+  required String content,
+}) async {
+
+  return await _service
+      .editPost(
+
+    token: token,
+
+    postId: postId,
+
+    content: content,
+  );
+}
+
+Future<Map<String, dynamic>>
+    deletePost({
+
+  required String token,
+
+  required String postId,
+}) async {
+
+  return await _service
+      .deletePost(
+
+    token: token,
+
+    postId: postId,
+  );
+}
+
 Future<Map<String, dynamic>>
     toggleLike({
 

@@ -94,6 +94,254 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // ── EDIT POST ──────────────────────────────────────────
+  Future<void> _editPost(PostModel post) async {
+    final contentController = TextEditingController(text: post.content);
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          "Edit Post",
+          style: TextStyle(
+            color: _dark,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        content: TextField(
+          controller: contentController,
+          maxLines: 5,
+          minLines: 3,
+          maxLength: 1500,
+          decoration: InputDecoration(
+            hintText: "Update your post content...",
+            hintStyle: const TextStyle(color: _muted),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primary, width: 2),
+            ),
+            fillColor: _bg,
+            filled: true,
+          ),
+          style: const TextStyle(color: _dark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: _muted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _submitEditPost(post.id, contentController.text);
+              contentController.dispose();
+            },
+            child: const Text(
+              "Save",
+              style: TextStyle(color: _white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitEditPost(String postId, String newContent) async {
+    if (newContent.trim().isEmpty) {
+      _showSnackbar("Content cannot be empty", isError: true);
+      return;
+    }
+
+    try {
+      final result = await _controller.editPost(postId, newContent);
+      if (result["success"] == true) {
+        _showSnackbar("Post updated successfully");
+        _loadProfile();
+      } else {
+        _showSnackbar(result["message"] ?? "Failed to edit post", isError: true);
+      }
+    } catch (e) {
+      _showSnackbar("Error: $e", isError: true);
+    }
+  }
+
+  // ── DELETE POST ────────────────────────────────────────
+  Future<void> _deletePost(PostModel post) async {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          "Delete Post?",
+          style: TextStyle(
+            color: _dark,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          "Are you sure you want to delete this post? This action cannot be undone.",
+          style: TextStyle(color: _body, fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              "Keep It",
+              style: TextStyle(color: _primary),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _like,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _submitDeletePost(post.id);
+            },
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: _white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitDeletePost(String postId) async {
+    try {
+      final result = await _controller.deletePost(postId);
+      if (result["success"] == true) {
+        _showSnackbar("Post deleted");
+        _loadProfile();
+      } else {
+        _showSnackbar(result["message"] ?? "Failed to delete post", isError: true);
+      }
+    } catch (e) {
+      _showSnackbar("Error: $e", isError: true);
+    }
+  }
+
+  // ── SHOW POST MENU ─────────────────────────────────────
+  void _showPostMenu(PostModel post) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: _white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _muted.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _menuItem(
+              icon: Icons.edit_rounded,
+              label: "Edit Post",
+              color: _primary,
+              onTap: () {
+                Navigator.pop(ctx);
+                _editPost(post);
+              },
+            ),
+            _menuItem(
+              icon: Icons.delete_rounded,
+              label: "Delete Post",
+              color: _like,
+              onTap: () {
+                Navigator.pop(ctx);
+                _deletePost(post);
+              },
+            ),
+            const SizedBox(height: 8),
+            _menuItem(
+              icon: Icons.close_rounded,
+              label: "Cancel",
+              color: _muted,
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSnackbar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? _like : _primary,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   // ── ROOT BUILD ────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -210,14 +458,18 @@ class _ProfileScreenState extends State<ProfileScreen>
         _barBtn(
           icon: Icons.edit_rounded,
           onTap: () async {
-            await Navigator.push(
+          final updatedUser = await Navigator.push<Map<String, dynamic>>(
               context,
               MaterialPageRoute(
                 builder: (_) =>
                     EditProfileScreen(userData: userData ?? {}),
               ),
             );
-            _loadProfile();
+            if (updatedUser != null && mounted) {
+              setState(() => userData = updatedUser);
+            } else {
+              _loadProfile();
+            }
           },
         ),
         // Cool door-with-arrow logout icon
@@ -312,8 +564,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                     CircleAvatar(
                       radius: 44,
                       backgroundColor: const Color(0xFFEDE9FF),
-                      backgroundImage:
-                          photo.isNotEmpty ? NetworkImage(photo) : null,
+                      backgroundImage: photo.isNotEmpty
+    ? NetworkImage(
+        "$photo?t=${DateTime.now().millisecondsSinceEpoch}",
+      )
+    : null,
                       child: photo.isEmpty
                           ? const Icon(Icons.person_rounded,
                               color: _primary, size: 38)
@@ -341,156 +596,103 @@ class _ProfileScreenState extends State<ProfileScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_primary, _secondary],
+                    color: _primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _primary.withOpacity(0.2),
                     ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _primary.withOpacity(0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Text(
                     "@$username",
                     style: const TextStyle(
-                      color: _white,
+                      color: _primary,
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ),
 
-                if (bio.isNotEmpty) ...[
-                  const SizedBox(height: 14),
+                const SizedBox(height: 16),
+
+                // Bio
+                if (bio.isNotEmpty)
                   Text(
                     bio,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: _body,
-                      fontSize: 14,
+                      fontSize: 13,
                       height: 1.6,
                     ),
                   ),
-                ],
+                if (bio.isNotEmpty) const SizedBox(height: 16),
 
-                if (address.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                // Location & Interests
+                if (address.isNotEmpty || interests.isNotEmpty)
+                  Column(
                     children: [
-                      const Icon(Icons.location_on_rounded,
-                          color: _primary, size: 13),
-                      const SizedBox(width: 4),
-                      Text(address,
-                          style:
-                              const TextStyle(color: _muted, fontSize: 13)),
+                      if (address.isNotEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.location_on_rounded,
+                                color: _primary, size: 14),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                address,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _body,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (address.isNotEmpty && interests.isNotEmpty)
+                        const SizedBox(height: 12),
+                      if (interests.isNotEmpty)
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: interests
+                              .take(3)
+                              .map(
+                                (interest) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: _secondary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: _secondary.withOpacity(0.3)),
+                                  ),
+                                  child: Text(
+                                    interest,
+                                    style: const TextStyle(
+                                      color: _secondary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
                     ],
                   ),
-                ],
-
-                const SizedBox(height: 22),
-
-                // Stats
-                _buildStatsRow(),
               ],
             ),
           ),
 
-          // ── Interests ──
-          if (interests.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            _glassCard(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 3,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                              colors: [_primary, _secondary],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        "Interests",
-                        style: TextStyle(
-                          color: _dark,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: interests.map((tag) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: _primary.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                              color: _primary.withOpacity(0.22)),
-                        ),
-                        child: Text(
-                          tag,
-                          style: const TextStyle(
-                            color: _primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          const SizedBox(height: 18),
 
-          // Posts section label
-          if (userPosts.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  width: 3,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [_primary, _secondary],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Posts",
-                  style: TextStyle(
-                    color: _dark,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          _buildStatsRow(),
+
           const SizedBox(height: 4),
         ],
       ),
@@ -624,10 +826,41 @@ class _ProfileScreenState extends State<ProfileScreen>
                           color: _primary.withOpacity(0.07),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          _timeAgo(post.createdAt),
-                          style: const TextStyle(
-                              color: _muted, fontSize: 11),
+                        child: Row(
+                          children: [
+                            Text(
+                              _timeAgo(post.createdAt),
+                              style: const TextStyle(
+                                  color: _muted, fontSize: 11),
+                            ),
+                            if (post.isEdited) ...[
+                              const SizedBox(width: 4),
+                              const Text(
+                                "(Edited)",
+                                style: TextStyle(
+                                  color: _muted,
+                                  fontSize: 10,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _showPostMenu(post),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: _primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.more_vert_rounded,
+                            color: _primary,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ],

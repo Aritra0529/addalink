@@ -43,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final firebaseToken = await firebaseUser.getIdToken() ?? "";
 
       final response = await http.get(
-        Uri.parse("http://10.104.108.80:5000/api/users/me"),
+        Uri.parse("http://10.182.129.80:5000/api/users/me"),
 
         headers: {"Authorization": "Bearer $firebaseToken"},
       );

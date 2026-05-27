@@ -3,6 +3,7 @@ const streamifier = require("streamifier");
 
 const User = require("../models/User");
 const Post = require("../models/Post");
+const Notification = require("../models/Notification");
 
 const generateToken = require("../utils/generateToken");
 
@@ -88,7 +89,8 @@ const getProfile = async (req, res) => {
 
         // FETCH USER POSTS
         const posts = await Post.find({
-           user: currentUser._id,
+            user: currentUser._id,
+            isDeleted: false,
         })
             .sort({ createdAt: -1 })
             .lean();
@@ -136,6 +138,9 @@ for (const post of posts) {
 
         createdAt:
             post.createdAt,
+
+        isEdited:
+            post.isEdited || false,
 
         likesCount:
             (post.likes || [])
@@ -247,12 +252,38 @@ const updateProfile = async (req, res) => {
         }
 
         // HANDLE PROFILE IMAGE UPLOAD
-        if (req.file && req.file.buffer) {
+if (req.file && req.file.buffer) {
             const cloudinaryResult =
                 await uploadToCloudinary(req.file.buffer);
 
             currentUser.photo = cloudinaryResult.secure_url;
+
+            // sync post-level avatar
+            await Post.updateMany(
+                { user: currentUser._id },
+                { $set: { userProfileImage: currentUser.photo } }
+            );
+
+           // sync avatar inside every comment this user made on any post
+            await Post.updateMany(
+                { "comments.user": currentUser._id },
+                {
+                    $set: {
+                        "comments.$[c].userProfileImage": currentUser.photo,
+                    },
+                },
+                {
+                    arrayFilters: [{ "c.user": currentUser._id }],
+                }
+            );
+
+            // sync avatar in all notifications this user sent
+            await Notification.updateMany(
+                { sender: currentUser._id },
+                { $set: { senderPhoto: currentUser.photo } }
+            );
         }
+        
 
         await currentUser.save();
 

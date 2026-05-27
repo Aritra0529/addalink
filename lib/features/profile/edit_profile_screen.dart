@@ -145,7 +145,7 @@ class _EditProfileScreenState
         _showSnack("Profile updated ✓");
 
         if (mounted) {
-          Navigator.pop(context);
+          Navigator.pop(context, response["user"]);
         }
 
       } else {

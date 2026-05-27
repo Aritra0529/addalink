@@ -9,70 +9,52 @@ import 'package:firebase_auth/firebase_auth.dart';
 // ─── BACKGROUND MESSAGE HANDLER ─────────────────────────────────────────────
 // Must be a top-level function — not inside a class
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(
-  RemoteMessage message,
-) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Firebase is already initialised in the app — no extra init needed here
   print("FCM Background: ${message.messageId}");
 }
 
 // ─── FCM SERVICE ────────────────────────────────────────────────────────────
 class FcmService {
+  static const String _baseUrl = "http://10.182.129.80:5000/api/users";
 
-  static const String _baseUrl =
-      "http://10.104.108.80:5000/api/users";
+  static const String _channelId = "addalink_notifications";
 
-  static const String _channelId =
-      "addalink_notifications";
-
-  static const String _channelName =
-      "AddaLink Notifications";
+  static const String _channelName = "AddaLink Notifications";
 
   // Local notifications plugin (for foreground display)
-  static final FlutterLocalNotificationsPlugin
-      _localNotifications =
-          FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   // Navigation key — set this from main.dart so FCM can push routes
   static GlobalKey<NavigatorState>? navigatorKey;
 
   // ── INIT ──────────────────────────────────────────────────────────────────
-  static Future<void> init({
-    required GlobalKey<NavigatorState> navKey,
-  }) async {
-
+  static Future<void> init({required GlobalKey<NavigatorState> navKey}) async {
     navigatorKey = navKey;
 
     final messaging = FirebaseMessaging.instance;
 
     // REQUEST PERMISSION (iOS + Android 13+)
-    await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await messaging.requestPermission(alert: true, badge: true, sound: true);
 
     // ANDROID NOTIFICATION CHANNEL
-    const AndroidNotificationChannel channel =
-        AndroidNotificationChannel(
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
       _channelId,
       _channelName,
-      description:
-          "Likes, comments and community updates",
+      description: "Likes, comments and community updates",
       importance: Importance.high,
     );
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     // INIT LOCAL NOTIFICATIONS
-    const InitializationSettings initSettings =
-        InitializationSettings(
-      android: AndroidInitializationSettings(
-        "@mipmap/ic_launcher",
-      ),
+    const InitializationSettings initSettings = InitializationSettings(
+      android: AndroidInitializationSettings("@mipmap/ic_launcher"),
       iOS: DarwinInitializationSettings(),
     );
 
@@ -95,8 +77,7 @@ class FcmService {
     });
 
     // TERMINATED TAP — app was closed, user tapped notification
-    final RemoteMessage? initialMessage =
-        await messaging.getInitialMessage();
+    final RemoteMessage? initialMessage = await messaging.getInitialMessage();
 
     if (initialMessage != null) {
       // Delay to let the widget tree build first
@@ -116,20 +97,16 @@ class FcmService {
 
   // ── SAVE TOKEN TO BACKEND ─────────────────────────────────────────────────
   static Future<void> saveTokenToBackend() async {
-
     try {
-
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final fcmToken =
-          await FirebaseMessaging.instance.getToken();
+      final fcmToken = await FirebaseMessaging.instance.getToken();
       if (fcmToken == null) return;
 
       final idToken = await user.getIdToken();
 
       await _sendTokenToBackend(fcmToken, idToken: idToken);
-
     } catch (e) {
       print("FCM save token error: $e");
     }
@@ -139,9 +116,7 @@ class FcmService {
     String fcmToken, {
     String? idToken,
   }) async {
-
     try {
-
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
@@ -155,7 +130,6 @@ class FcmService {
         },
         body: jsonEncode({"fcmToken": fcmToken}),
       );
-
     } catch (e) {
       print("FCM send token error: $e");
     }
@@ -163,7 +137,6 @@ class FcmService {
 
   // ── SHOW LOCAL NOTIFICATION (foreground) ─────────────────────────────────
   static void _showLocalNotification(RemoteMessage message) {
-
     final notification = message.notification;
     if (notification == null) return;
 
@@ -194,7 +167,6 @@ class FcmService {
 
   // ── HANDLE LOCAL NOTIFICATION TAP ────────────────────────────────────────
   static void _handleNotificationTap(String? payload) {
-
     if (payload == null) return;
 
     try {
@@ -211,24 +183,19 @@ class FcmService {
   // ── CORE NAVIGATION LOGIC ─────────────────────────────────────────────────
   // Reads type + postId from FCM data and pushes PostDetailScreen
   static void _navigate(Map<String, dynamic> data) {
-
     final String postId = data["postId"] ?? "";
     final String type = data["type"] ?? "";
 
     if (postId.isEmpty) return;
 
-    final context =
-        navigatorKey?.currentContext;
+    final context = navigatorKey?.currentContext;
     if (context == null) return;
 
     // Avoid circular import — use dynamic route string approach
     // PostDetailScreen is imported where navigatorKey is used (main.dart)
     navigatorKey?.currentState?.pushNamed(
       "/post-detail",
-      arguments: {
-        "postId": postId,
-        "openComments": type == "comment",
-      },
+      arguments: {"postId": postId, "openComments": type == "comment"},
     );
   }
 }

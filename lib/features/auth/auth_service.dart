@@ -9,106 +9,75 @@ class AuthService {
 
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  static const String _baseUrl = "http://10.104.108.80:5000/api/auth";
+  static const String _baseUrl = "http://10.182.129.80:5000/api/auth";
 
   // CURRENT USER
   User? get currentUser => _firebaseAuth.currentUser;
 
   // GOOGLE SIGN IN
   Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // FORCE ACCOUNT CHOOSER
+      await _googleSignIn.disconnect();
 
-  try {
+      // OPEN GOOGLE ACCOUNT PICKER
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-    // FORCE ACCOUNT CHOOSER
-    await _googleSignIn.disconnect();
+      // USER CANCELLED LOGIN
+      if (googleUser == null) {
+        return null;
+      }
 
-    // OPEN GOOGLE ACCOUNT PICKER
-    final GoogleSignInAccount? googleUser =
-        await _googleSignIn.signIn();
+      // GET AUTH DETAILS
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-    // USER CANCELLED LOGIN
-    if (googleUser == null) {
+      // CREATE FIREBASE CREDENTIAL
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // FIREBASE LOGIN
+      UserCredential userCredential = await _firebaseAuth.signInWithCredential(
+        credential,
+      );
+
+      return userCredential;
+    } catch (e) {
+      print("Google Sign In Error: $e");
+
       return null;
     }
-
-    // GET AUTH DETAILS
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
-    // CREATE FIREBASE CREDENTIAL
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    // FIREBASE LOGIN
-    UserCredential userCredential =
-        await _firebaseAuth.signInWithCredential(
-      credential,
-    );
-
-    return userCredential;
-
-  } catch (e) {
-
-    print("Google Sign In Error: $e");
-
-    return null;
   }
-}
+
   // BACKEND LOGIN — creates user in MongoDB and returns JWT
-  Future<Map<String, dynamic>?>
-    loginWithBackend(
-  String firebaseToken,
-) async {
+  Future<Map<String, dynamic>?> loginWithBackend(String firebaseToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$_baseUrl/google-login"),
 
-  try {
+        headers: {"Content-Type": "application/json"},
 
-    final response =
-        await http.post(
+        body: jsonEncode({"firebaseToken": firebaseToken}),
+      );
 
-      Uri.parse(
-        "$_baseUrl/google-login",
-      ),
+      final data = jsonDecode(response.body);
 
-      headers: {
+      if (data["success"] == true) {
+        return data;
+      }
 
-        "Content-Type":
-            "application/json",
-      },
+      print("Backend Login Error: ${data["message"]}");
 
-      body: jsonEncode({
+      return null;
+    } catch (e) {
+      print("Backend Login Error: $e");
 
-        "firebaseToken":
-            firebaseToken,
-      }),
-    );
-
-    final data =
-        jsonDecode(
-      response.body,
-    );
-
-    if (data["success"] == true) {
-
-      return data;
+      return null;
     }
-
-    print(
-      "Backend Login Error: ${data["message"]}",
-    );
-
-    return null;
-
-  } catch (e) {
-
-    print(
-      "Backend Login Error: $e",
-    );
-
-    return null;
   }
-}
+
   // LOGOUT
   Future<void> logout() async {
     try {

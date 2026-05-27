@@ -84,4 +84,40 @@ class ProfileController {
       photo: photo,
     );
   }
+
+  // EDIT POST — profile screen (own posts only)
+  Future<Map<String, dynamic>> editPost(
+    String postId,
+    String content,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return {"success": false};
+    }
+
+    final token = await user.getIdToken();
+
+    return await _service.editPost(
+      token: token!,
+      postId: postId,
+      content: content,
+    );
+  }
+
+  // DELETE POST — profile screen (own posts only)
+  Future<Map<String, dynamic>> deletePost(String postId) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return {"success": false};
+    }
+
+    final token = await user.getIdToken();
+
+    return await _service.deletePost(
+      token: token!,
+      postId: postId,
+    );
+  }
 }

@@ -44,11 +44,16 @@ class HomeFeedScreen
 }
 
 class _HomeFeedScreenState
-    extends State<HomeFeedScreen> {
+         extends State<HomeFeedScreen>
+         with WidgetsBindingObserver {
 
   final FeedController
       controller =
           FeedController();
+
+  final ScrollController
+      _scrollController =
+          ScrollController();
 
   List<PostModel> posts = [];
 
@@ -62,30 +67,120 @@ class _HomeFeedScreenState
 
   int unreadCount = 0;
 
-  @override
+@override
+     void didChangeAppLifecycleState(AppLifecycleState state) {
+       if (state == AppLifecycleState.resumed) {
+         _loadUnreadCount();
+       }
+     }
+
+@override
   void initState() {
 
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    _scrollController.addListener(
+      _onScroll,
+    );
 
     loadFeed();
     _loadUnreadCount();
   }
 
-  Future<void> _loadUnreadCount() async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!mounted) return;
+    if (isLoading) return;
+    if (posts.isEmpty) return;
+    if (!controller.hasMore) return;
+    if (controller.isLoadingMore) return;
+
+    final position =
+        _scrollController.position;
+
+    if (position.pixels >=
+        position.maxScrollExtent - 300) {
+      _loadMorePosts();
+    }
+  }
+
+  Future<void> _loadMorePosts() async {
+    if (!mounted) return;
+
+    if (!controller.hasMore ||
+        controller.isLoadingMore) return;
+
+    try {
+
+      final user =
+          FirebaseAuth.instance.currentUser;
+
+      if (user == null) return;
+
+      final token =
+          await user.getIdToken();
+
+      final updatedPosts =
+          await controller.getFeedPosts(
+        token: token!,
+      );
+
+      if (mounted) {
+        setState(() {
+          posts = updatedPosts;
+        });
+      }
+
+    } catch (e) {
+
+      print("Load more failed: $e");
+    }
+  }
+
+  // ADD THIS BLOCK right after initState:
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshCurrentUserPhoto();
+  }
+
+  Future<void> _refreshCurrentUserPhoto() async {
+    final profileResponse = await ProfileController().getProfile();
+    if (mounted) {
+      setState(() {
+        currentUserPhoto = profileResponse["user"]["photo"] ?? "";
+        currentUserUsername = profileResponse["user"]["username"] ?? "";
+      });
+    }
+  }
+
+    Future<void> _loadUnreadCount() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
+
       final token = await user.getIdToken();
-      final notifications =
-          await NotificationController().getNotifications(token: token!);
+      if (token == null) return;
+
+      // Calls GET /api/notifications/unread-count — a single countDocuments
+      // query on the backend. Does NOT fetch or parse the full notification list.
+      final count = await NotificationController().getUnreadCount(token: token);
+
       if (mounted) {
         setState(() {
-          unreadCount =
-              notifications.where((n) => !n.isRead).length;
+          unreadCount = count;
         });
       }
     } catch (_) {}
   }
+
 
   Future<void> loadFeed() async {
 
@@ -103,37 +198,37 @@ class _HomeFeedScreenState
       final token =
           await user.getIdToken();
 
-      final fetchedPosts =
+final fetchedPosts =
           await controller
               .getFeedPosts(
         token: token!,
+        refresh: true,
       );
 
-      posts = fetchedPosts;
+      final profileResponse =
+          await ProfileController()
+              .getProfile();
 
-final profileResponse =
-    await ProfileController()
-        .getProfile();
-
-currentUserPhoto =
-    profileResponse["user"]
-            ["photo"] ??
-        "";
-
-currentUserUsername =
-    profileResponse["user"]
-            ["username"] ??
-        "";
+      if (mounted) {
+        setState(() {
+          posts = fetchedPosts;
+          currentUserPhoto =
+              profileResponse["user"]["photo"] ?? "";
+          currentUserUsername =
+              profileResponse["user"]["username"] ?? "";
+          isLoading = false;
+        });
+      }
 
     } catch (e) {
 
       print(e);
 
-    } finally {
-
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -208,6 +303,9 @@ currentUserUsername =
                   )
 
                 : CustomScrollView(
+
+                    controller:
+                        _scrollController,
 
                     physics:
                         const BouncingScrollPhysics(),
@@ -899,6 +997,23 @@ currentUserUsername =
                                       posts.length,
                                 ),
                               ),
+                      ),
+
+                      // BOTTOM LOADING INDICATOR
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
+                          child: controller.isLoadingMore
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: primaryColor,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ),
                     ],
                   ),
@@ -2370,6 +2485,8 @@ class _FeedVideoPlayerState
   void initState() {
 
     super.initState();
+
+    
 
     controller =
         VideoPlayerController.networkUrl(

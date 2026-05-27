@@ -50,10 +50,27 @@ class _PostDetailScreenState
 
   String currentUserUsername = "";
 
-  @override
+@override
   void initState() {
     super.initState();
     _loadPost();
+  }
+
+  // ADD THIS BLOCK right after initState:
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshCurrentUserPhoto();
+  }
+
+  Future<void> _refreshCurrentUserPhoto() async {
+    final profileResponse = await ProfileController().getProfile();
+    if (mounted) {
+      setState(() {
+        currentUserPhoto = profileResponse["user"]["photo"] ?? "";
+        currentUserUsername = profileResponse["user"]["username"] ?? "";
+      });
+    }
   }
 
   Future<void> _loadPost() async {
@@ -87,10 +104,6 @@ class _PostDetailScreenState
 
         setState(() {
           post = fetchedPost;
-          currentUserPhoto =
-              profileResponse["user"]["photo"] ?? "";
-          currentUserUsername =
-              profileResponse["user"]["username"] ?? "";
           isLoading = false;
         });
 

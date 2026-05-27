@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class FeedService {
-  static const String baseUrl = "http://10.104.108.80:5000/api/posts";
+  static const String baseUrl = "http://10.182.129.80:5000/api/posts";
 
   Future<Map<String, dynamic>> createPost({
     required String token,
@@ -59,14 +59,60 @@ class FeedService {
   }
 
   // GET FEED
-  Future<Map<String, dynamic>> getFeed({required String token}) async {
+  Future<Map<String, dynamic>> getFeed({
+    required String token,
+    int page = 1,
+    int limit = 10,
+  }) async {
     final response = await http.get(
-      Uri.parse("$baseUrl/feed"),
+      Uri.parse("$baseUrl/feed?page=$page&limit=$limit"),
 
       headers: {"Authorization": "Bearer $token"},
     );
 
     print("FEED RESPONSE: ${response.body}");
+
+    return jsonDecode(response.body);
+  }
+
+  // EDIT POST (TEXT ONLY)
+  Future<Map<String, dynamic>> editPost({
+    required String token,
+
+    required String postId,
+
+    required String content,
+  }) async {
+    final response = await http.put(
+      Uri.parse("$baseUrl/$postId"),
+
+      headers: {
+        "Authorization": "Bearer $token",
+
+        "Content-Type": "application/json",
+      },
+
+      body: jsonEncode({"content": content}),
+    );
+
+    print("EDIT POST RESPONSE: ${response.body}");
+
+    return jsonDecode(response.body);
+  }
+
+  // DELETE POST (SOFT DELETE)
+  Future<Map<String, dynamic>> deletePost({
+    required String token,
+
+    required String postId,
+  }) async {
+    final response = await http.delete(
+      Uri.parse("$baseUrl/$postId"),
+
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    print("DELETE POST RESPONSE: ${response.body}");
 
     return jsonDecode(response.body);
   }
@@ -113,14 +159,10 @@ class FeedService {
 
     required String postId,
   }) async {
-
     final response = await http.get(
-
       Uri.parse("$baseUrl/$postId"),
 
-      headers: {
-        "Authorization": "Bearer $token",
-      },
+      headers: {"Authorization": "Bearer $token"},
     );
 
     return jsonDecode(response.body);

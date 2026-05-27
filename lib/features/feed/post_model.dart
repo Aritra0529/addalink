@@ -66,6 +66,8 @@ class PostModel {
 
   bool isLiked;
 
+  bool isEdited;
+
   int currentImageIndex = 0;
 
   PostModel({
@@ -89,6 +91,8 @@ class PostModel {
     required this.likesCount,
 
     required this.isLiked,
+
+    required this.isEdited,
 
     required this.commentsCount,
 
@@ -130,6 +134,9 @@ class PostModel {
 
       isLiked:
           json["isLiked"] ?? false,
+
+      isEdited:
+          json["isEdited"] ?? false,
 
       comments:
     (json["comments"] as List?)

@@ -177,13 +177,7 @@ async (req, res) => {
                 username:
                     user.username,
 
-                userProfileImage:
-
-                    user.photo ||
-
-                    user.profileImage ||
-
-                    "",
+               userProfileImage: user.photo || "",
 
                 content:
                     content || "",
@@ -224,6 +218,172 @@ async (req, res) => {
 
             message:
                 "Failed to create post",
+        });
+    }
+};
+
+// EDIT POST (TEXT ONLY)
+const editPost =
+async (req, res) => {
+
+    try {
+
+        const { postId } =
+            req.params;
+
+        const { content } =
+            req.body;
+
+        const userId =
+            req.user._id;
+
+        // FIND POST
+        const post =
+            await Post.findById(
+                postId,
+            );
+
+        if (!post) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Post not found",
+            });
+        }
+
+        // VERIFY OWNERSHIP
+        if (
+
+            String(post.user) !==
+            String(userId)
+
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Unauthorized: You can only edit your own posts",
+            });
+        }
+
+        // VERIFY POST NOT DELETED
+        if (post.isDeleted) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Cannot edit a deleted post",
+            });
+        }
+
+        // UPDATE CONTENT AND MARK AS EDITED
+        post.content = content || "";
+        post.isEdited = true;
+
+        await post.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Post updated successfully",
+
+            post: post,
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Failed to edit post",
+        });
+    }
+};
+
+// SOFT DELETE POST
+const deletePost =
+async (req, res) => {
+
+    try {
+
+        const { postId } =
+            req.params;
+
+        const userId =
+            req.user._id;
+
+        // FIND POST
+        const post =
+            await Post.findById(
+                postId,
+            );
+
+        if (!post) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Post not found",
+            });
+        }
+
+        // VERIFY OWNERSHIP
+        if (
+
+            String(post.user) !==
+            String(userId)
+
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Unauthorized: You can only delete your own posts",
+            });
+        }
+
+        // SOFT DELETE
+        post.isDeleted = true;
+
+        await post.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Post deleted successfully",
+
+            postId: postId,
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Failed to delete post",
         });
     }
 };
@@ -300,13 +460,7 @@ async (req, res) => {
                     senderName:
                         req.user.username,
 
-                    senderPhoto:
-
-                        req.user.photo ||
-
-                        req.user.profileImage ||
-
-                        "",
+                    senderPhoto: req.user.photo || "",
 
                     type:
                         "like",
@@ -401,13 +555,7 @@ async (req, res) => {
             username:
                 req.user.username,
 
-            userProfileImage:
-
-                req.user.photo ||
-
-                req.user.profileImage ||
-
-                "",
+           userProfileImage: req.user.photo || "",
 
             text,
         });
@@ -433,13 +581,7 @@ async (req, res) => {
                 senderName:
                     req.user.username,
 
-                senderPhoto:
-
-                    req.user.photo ||
-
-                    req.user.profileImage ||
-
-                    "",
+                senderPhoto: req.user.photo || "",
 
                 type:
                     "comment",
@@ -497,6 +639,23 @@ async (req, res) => {
 
     try {
 
+        const page =
+            parseInt(req.query.page) || 1;
+
+        const limit =
+            parseInt(req.query.limit) || 10;
+
+        const skip =
+            (page - 1) * limit;
+
+        const totalPosts =
+            await Post.countDocuments({
+                isDeleted: false,
+            });
+
+        const totalPages =
+            Math.ceil(totalPosts / limit);
+
         const posts =
             await Post.find({
 
@@ -506,7 +665,11 @@ async (req, res) => {
             .sort({
 
                 createdAt: -1,
-            });
+            })
+
+            .skip(skip)
+
+            .limit(limit);
 
         const formattedPosts =
             posts.map((post) => {
@@ -537,6 +700,9 @@ async (req, res) => {
                     createdAt:
                         post.createdAt,
 
+                    isEdited:
+                        post.isEdited,
+
                     likesCount:
                         post.likes.length,
 
@@ -562,6 +728,15 @@ async (req, res) => {
 
             posts:
                 formattedPosts,
+
+            currentPage:
+                page,
+
+            totalPages:
+                totalPages,
+
+            hasMore:
+                page < totalPages,
         });
 
     } catch (error) {
@@ -629,6 +804,9 @@ async (req, res) => {
             createdAt:
                 post.createdAt,
 
+            isEdited:
+                post.isEdited,
+
             likesCount:
                 post.likes.length,
 
@@ -667,6 +845,10 @@ async (req, res) => {
 module.exports = {
 
     createPost,
+
+    editPost,
+
+    deletePost,
 
     toggleLikePost,
 

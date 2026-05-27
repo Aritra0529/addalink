@@ -8,6 +8,10 @@ const {
 
     createPost,
 
+    editPost,
+
+    deletePost,
+
     toggleLikePost,
 
     addComment,
@@ -77,6 +81,26 @@ router.get(
     protect,
 
     getPostById
+);
+
+// EDIT POST
+router.put(
+
+    "/:postId",
+
+    protect,
+
+    editPost
+);
+
+// DELETE POST (SOFT DELETE)
+router.delete(
+
+    "/:postId",
+
+    protect,
+
+    deletePost
 );
 
 // TOGGLE LIKE
