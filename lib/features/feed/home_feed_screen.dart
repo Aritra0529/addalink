@@ -1,15 +1,19 @@
+import 'package:addalink/core/services/video_manager_service.dart';
+import 'package:addalink/core/widgets/feed_video_player.dart';
+import 'package:addalink/core/widgets/skeleton_widgets.dart';
 import 'package:addalink/features/profile/profile_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
 
 import 'create_post_screen.dart';
 import 'feed_controller.dart';
+
 import 'post_model.dart';
 import '../profile/profile_screen.dart';
 import '../notifications/notification_controller.dart';
 import '../notifications/notification_screen.dart';
+
 
 
 const Color backgroundColor =
@@ -92,6 +96,7 @@ class _HomeFeedScreenState
   void dispose() {
     _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    VideoManagerService().disposeAll();
     super.dispose();
   }
 
@@ -293,14 +298,7 @@ final fetchedPosts =
 
             child: isLoading
 
-                ? const Center(
-
-                    child:
-                        CircularProgressIndicator(
-                      color:
-                          primaryColor,
-                    ),
-                  )
+                ? const FeedSkeletonList()
 
                 : CustomScrollView(
 
@@ -1598,7 +1596,9 @@ if (post.video.isNotEmpty)
       ),
 
       child: FeedVideoPlayer(
+        postId: post.id,
         videoUrl: post.video,
+        thumbnailUrl: post.thumbnail.isNotEmpty ? post.thumbnail : null,
       ),
     ),
   ),
@@ -2453,138 +2453,6 @@ if (post.video.isNotEmpty)
           ),
         ],
       ),
-    );
-  }
-}
-
-class FeedVideoPlayer
-    extends StatefulWidget {
-
-  final String videoUrl;
-
-  const FeedVideoPlayer({
-    super.key,
-    required this.videoUrl,
-  });
-
-  @override
-  State<FeedVideoPlayer>
-      createState() =>
-          _FeedVideoPlayerState();
-}
-
-class _FeedVideoPlayerState
-    extends State<FeedVideoPlayer> {
-
-  late VideoPlayerController
-      controller;
-
-  bool isInitialized = false;
-
-  @override
-  void initState() {
-
-    super.initState();
-
-    
-
-    controller =
-        VideoPlayerController.networkUrl(
-      Uri.parse(widget.videoUrl),
-    );
-
-    controller.initialize().then((_) {
-
-      setState(() {
-
-        isInitialized = true;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-
-    controller.dispose();
-
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-
-    if (!isInitialized) {
-
-      return Container(
-
-        height: 240,
-
-        color: Colors.black12,
-
-        child: const Center(
-
-          child:
-              CircularProgressIndicator(
-            color: primaryColor,
-          ),
-        ),
-      );
-    }
-
-    return Stack(
-
-      alignment: Alignment.center,
-
-      children: [
-
-        AspectRatio(
-
-          aspectRatio:
-              controller.value.aspectRatio,
-
-          child: VideoPlayer(
-            controller,
-          ),
-        ),
-
-        GestureDetector(
-
-          onTap: () {
-
-            setState(() {
-
-              controller.value.isPlaying
-
-                  ? controller.pause()
-
-                  : controller.play();
-            });
-          },
-
-          child: CircleAvatar(
-
-            radius: 30,
-
-            backgroundColor:
-                Colors.black45,
-
-            child: Icon(
-
-              controller
-                      .value
-                      .isPlaying
-
-                  ? Icons.pause
-
-                  : Icons.play_arrow,
-
-              color: Colors.white,
-
-              size: 34,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -54,6 +54,8 @@ class PostModel {
 
   final String video;
 
+  final String thumbnail;
+
   final String postType;
 
   final String createdAt;
@@ -83,6 +85,8 @@ class PostModel {
     required this.images,
 
     required this.video,
+
+    required this.thumbnail,
 
     required this.postType,
 
@@ -122,6 +126,9 @@ class PostModel {
 
       video:
           json["video"] ?? "",
+
+      thumbnail:
+          json["thumbnail"] ?? "",
 
       postType:
           json["postType"] ?? "",

@@ -1,3 +1,4 @@
+import 'package:addalink/core/widgets/skeleton_widgets.dart';
 import 'package:addalink/features/auth/auth_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'profile_controller.dart';
 import 'edit_profile_screen.dart';
 import '../feed/post_model.dart';
+
 
 // ── Palette (light / glassmorphism) ─────────────────────
 const Color _bg         = Color(0xFFF0F2FF);   // soft lavender-white canvas
@@ -358,8 +360,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             _ambientBlobs(),
 
             if (isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: _primary, strokeWidth: 2.5),
+              const Positioned.fill(
+                child: ProfileSkeleton(),
               )
             else
               FadeTransition(

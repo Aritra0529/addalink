@@ -1,3 +1,4 @@
+import 'package:addalink/core/widgets/skeleton_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'notification_controller.dart';
 import 'notification_model.dart';
 import 'notification_tile.dart';
 import '../feed/post_detail_screen.dart';
+
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -141,9 +143,7 @@ class _NotificationScreenState extends State<NotificationScreen>
           color:     const Color(0xFF6C4DFF),
           onRefresh: _loadAndMarkRead,
           child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF6C4DFF)),
-                )
+              ? const NotificationSkeletonList()
               : _notifications.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(

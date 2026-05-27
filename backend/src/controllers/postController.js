@@ -45,6 +45,8 @@ async (req, res) => {
 
         let videoUrl = "";
 
+        let thumbnailUrl = "";
+
         // UPLOAD IMAGES
         if (
 
@@ -70,29 +72,31 @@ async (req, res) => {
 
                             "UPLOADING IMAGE:",
 
-                            file.path
+                            file.originalname
                         );
 
-                        const result =
+                        // Stream buffer directly — memoryStorage gives buffer, not path
+                        const result = await new Promise(
+                            (resolve, reject) => {
 
-                            await cloudinary
-                                .uploader
-                                .upload(
+                                const stream =
+                                    cloudinary.uploader.upload_stream(
 
-                                    file.path,
+                                        {
+                                            folder: "addalink/posts/images",
+                                            quality: "auto",
+                                            fetch_format: "auto",
+                                        },
 
-                                    {
+                                        (error, result) => {
+                                            if (error) reject(error);
+                                            else resolve(result);
+                                        }
+                                    );
 
-                                        folder:
-                                            "addalink/posts/images",
-
-                                        quality:
-                                            "auto",
-
-                                        fetch_format:
-                                            "auto",
-                                    }
-                                );
+                                stream.end(file.buffer);
+                            }
+                        );
 
                         console.log(
 
@@ -127,26 +131,43 @@ async (req, res) => {
             const videoFile =
                 req.files.video[0];
 
-            const result =
+            // Stream buffer directly to Cloudinary to avoid ECONNRESET
+            // that occurs when uploading large buffers via uploader.upload()
+            const result = await new Promise(
+                (resolve, reject) => {
 
-                await cloudinary
-                    .uploader
-                    .upload(
+                    const stream =
+                        cloudinary.uploader.upload_stream(
 
-                        videoFile.path,
+                            {
+                                resource_type: "video",
+                                folder: "addalink/posts/videos",
+                            },
 
-                        {
+                            (error, result) => {
+                                if (error) reject(error);
+                                else resolve(result);
+                            }
+                        );
 
-                            resource_type:
-                                "video",
-
-                            folder:
-                                "addalink/posts/videos",
-                        }
-                    );
+                    stream.end(videoFile.buffer);
+                }
+            );
 
             videoUrl =
                 result.secure_url;
+
+            // Derive thumbnail using Cloudinary URL transformation —
+            // no eager/webhook needed, URL is available immediately.
+            thumbnailUrl = videoUrl
+                .replace(
+                    "/upload/",
+                    "/upload/w_720,h_405,c_fill,g_auto,q_auto,so_0/",
+                )
+                .replace(
+                    /\.[^.]+$/,
+                    ".jpg",
+                );
         }
 
         // DETERMINE POST TYPE
@@ -193,6 +214,9 @@ async (req, res) => {
 
                 video:
                     videoUrl,
+
+                thumbnail:
+                    thumbnailUrl,
 
                 postType,
             });
@@ -694,6 +718,9 @@ async (req, res) => {
                     video:
                         post.video || "",
 
+                    thumbnail:
+                        post.thumbnail || "",
+
                     postType:
                         post.postType,
 
@@ -797,6 +824,9 @@ async (req, res) => {
 
             video:
                 post.video || "",
+
+            thumbnail:
+                post.thumbnail || "",
 
             postType:
                 post.postType,

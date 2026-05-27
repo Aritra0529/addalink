@@ -64,6 +64,13 @@ const postSchema = new mongoose.Schema(
             default: "",
         },
 
+        thumbnail: {
+
+            type: String,
+
+            default: "",
+        },
+
         interests: [
 
             {
